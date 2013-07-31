@@ -11,4 +11,4 @@ suitable for Wordpress.
 ---
 
 For sample usage, check out the [Akka & Cassandra Activator](https://github.com/eigengo/activator-akka-cassandra). The
-``tutorial/index.html`` file was generated using ``mdrw activator`` from ``tutorial/index.md``.
+``tutorial/index.html`` file was generated from ``tutorial/index.md`` by running ``sbt mdrw activator``. The
