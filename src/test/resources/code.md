@@ -3,7 +3,7 @@
 #Code example
 Here is some code sample ``foo()``:
 
-```
+```scala
 foo match {
   case "fish" => <*->
   case "pig"  =>  ^    ^

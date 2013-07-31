@@ -13,7 +13,33 @@ sealed trait BufferOperation
 case object ClearBuffer extends BufferOperation
 case object LeaveBuffer extends BufferOperation
 
+case class Tags(opening: String, closing: String)
+
+trait HtmlVisitorCodeFormat {
+
+  def codeBlockTags(kind: Option[String]): Tags
+
+  def escapeCode(code: String): String
+
+}
+
+trait HtmlVisitorHeadingFormat {
+
+  def headingTag(level: Int): Tags
+
+}
+
 class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSequence => BufferOperation) extends Visitor {
+  this: HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat =>
+
+  private[this] trait NoFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
+    def codeBlockTags(kind: Option[String]): Tags = Tags("", "")
+
+    def escapeCode(code: String): String = code
+
+    def headingTag(level: Int): Tags = Tags("<h%d>" format level, "</h%d>" format level)
+  }
+
   import scala.collection.JavaConversions._
   private val buffer: StringBuilder = new mutable.StringBuilder()
 
@@ -25,7 +51,7 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   }
 
   def collectChildren(node: Node): String = {
-    val childVisitor = new HtmlVisitor((_, _) => ConsumeOnly, _ => LeaveBuffer)
+    val childVisitor = new HtmlVisitor((_, _) => ConsumeOnly, _ => LeaveBuffer) with NoFormat
     node.getChildren.foreach(_.accept(childVisitor))
     childVisitor.toHtml
   }
@@ -81,10 +107,10 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
 
   def visit(node: HeaderNode) {
     yieldVisit(node) {
-      val level = if (node.getLevel > 1) node.getLevel else 2
-      appendFormat("<h%d>", level)
+      val tags = headingTag(node.getLevel)
+      buffer.append(tags.opening)
       visitChildren(node)
-      appendFormat("</h%d>", level)
+      buffer.append(tags.closing)
       appendNL()
     }
   }
@@ -146,9 +172,12 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   def visit(node: TableRowNode) {}
 
   def visit(node: VerbatimNode) {
-    buffer.append("<code><pre>\n")
-    buffer.append(node.getText)
-    buffer.append("</pre></code>\n")
+    val tags = codeBlockTags(if (node.getType.isEmpty) None else Some(node.getType))
+    buffer.append(tags.opening)
+    buffer.append('\n')
+    buffer.append(escapeCode(node.getText))
+    buffer.append(tags.closing)
+    buffer.append('\n')
   }
 
   def visit(node: WikiLinkNode) {}

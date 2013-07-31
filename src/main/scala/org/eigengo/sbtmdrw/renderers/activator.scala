@@ -37,7 +37,7 @@ class ActivatorMarkdownRenderer extends MarkdownRenderer {
     ClearBuffer
   }
 
-  private val visitor = new HtmlVisitor(shouldYield, wrap)
+  private val visitor = new HtmlVisitor(shouldYield, wrap) with ActivatorHtmlVisitorFormat
 
   def render(root: RootNode): String = {
     visitor.visit(root)
@@ -49,4 +49,15 @@ class ActivatorMarkdownRenderer extends MarkdownRenderer {
 
 object ActivatorMarkdownRenderer {
   def apply(): ActivatorMarkdownRenderer = new ActivatorMarkdownRenderer()
+}
+
+trait ActivatorHtmlVisitorFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
+  def codeBlockTags(kind: Option[String]): Tags = Tags("<code><pre>", "</pre></code>")
+
+  def escapeCode(code: String): String = code
+
+  def headingTag(level: Int): Tags = {
+    val l = if (level == 1) 2 else level
+    Tags("<h%d>" format l, "</h%d>" format l)
+  }
 }
