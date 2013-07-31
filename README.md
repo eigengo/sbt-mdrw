@@ -8,3 +8,7 @@ The parameter of the ``mdrw`` command can be the name of the rewriter; currently
 As you can imagine, the ``activator`` generates HTML suitable for the Typesafe Activator, ``wordpress`` generates HTML 
 suitable for Wordpress.
 
+---
+
+For sample usage, check out the [Akka & Cassandra Activator](https://github.com/eigengo/activator-akka-cassandra). The
+``tutorial/index.html`` file was generated using ``mdrw activator`` from ``tutorial/index.md``.
