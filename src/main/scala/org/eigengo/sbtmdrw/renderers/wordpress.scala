@@ -2,10 +2,9 @@ package org.eigengo.sbtmdrw.renderers
 
 import org.eigengo.sbtmdrw.MarkdownRenderer
 import org.pegdown.ast.RootNode
-import scala.collection.mutable
 
 class WordpressMarkdownRenderer extends MarkdownRenderer {
-  private val visitor = new HtmlVisitor((_, _) => ConsumeOnly, _ => LeaveBuffer) with WordpressHtmlVisitorFormat
+  private val visitor = new HtmlVisitor(_ => NoWrap) with WordpressHtmlVisitorFormat
 
   def render(root: RootNode): String = {
     visitor.visit(root)

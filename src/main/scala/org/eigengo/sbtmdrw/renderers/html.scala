@@ -3,17 +3,14 @@ package org.eigengo.sbtmdrw.renderers
 import org.pegdown.ast._
 import scala.collection.mutable
 
-sealed trait ShouldYield
-case object ConsumeAndYield extends ShouldYield
-case object ConsumeOnly     extends ShouldYield
-case object YieldOnly       extends ShouldYield
-case object SkipAndClear    extends ShouldYield
-
-sealed trait BufferOperation
-case object ClearBuffer extends BufferOperation
-case object LeaveBuffer extends BufferOperation
+sealed trait Wrap
+case class PrefixWith(html: String) extends Wrap
+case object Skip extends Wrap
+case object NoWrap extends Wrap
 
 case class Tags(opening: String, closing: String)
+
+case class Header(level: Int, html: String)
 
 trait HtmlVisitorCodeFormat {
 
@@ -29,7 +26,7 @@ trait HtmlVisitorHeadingFormat {
 
 }
 
-class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSequence => BufferOperation) extends Visitor {
+class HtmlVisitor(wrapper: Header => Wrap) extends Visitor {
   this: HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat =>
 
   private[this] trait NoFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
@@ -43,26 +40,10 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   import scala.collection.JavaConversions._
   private val buffer: StringBuilder = new mutable.StringBuilder()
 
-  private def yieldBuffer(): Unit = {
-    doYield(buffer) match {
-      case ClearBuffer => buffer.clear()
-      case LeaveBuffer => // nothing
-    }
-  }
-
   def collectChildren(node: Node): String = {
-    val childVisitor = new HtmlVisitor((_, _) => ConsumeOnly, _ => LeaveBuffer) with NoFormat
+    val childVisitor = new HtmlVisitor(wrapper) with NoFormat
     node.getChildren.foreach(_.accept(childVisitor))
     childVisitor.toHtml
-  }
-
-  private def yieldVisit[U](node: Node)(f: => U) {
-    shouldYield(node, collectChildren(node)) match {
-      case ConsumeAndYield => f; yieldBuffer()
-      case ConsumeOnly     => f
-      case YieldOnly       => yieldBuffer()
-      case SkipAndClear    => buffer.clear()
-    }
   }
 
   private def appendFormat(text: String, arguments: Any*): Unit = {
@@ -82,9 +63,7 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   def visit(node: BulletListNode) {}
 
   def visit(node: CodeNode) {
-    yieldVisit(node) {
-      appendFormat("<code>%s</code>", node.getText)
-    }
+    appendFormat("<code>%s</code>", node.getText)
   }
 
   def visit(node: DefinitionListNode) {}
@@ -94,24 +73,32 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   def visit(node: DefinitionTermNode) {}
 
   def visit(node: ExpImageNode) {
-    yieldVisit(node) {
-      appendFormat("""<img src="%s" title="%s"/>""", node.url, collectChildren(node))
-    }
+    appendFormat("""<img src="%s" title="%s"/>""", node.url, collectChildren(node))
   }
 
   def visit(node: ExpLinkNode) {
-    yieldVisit(node) {
-      appendFormat("""<a href="%s" target="_blank">%s</a>""", node.url, collectChildren(node))
-    }
+    appendFormat("""<a href="%s" target="_blank">%s</a>""", node.url, collectChildren(node))
   }
 
   def visit(node: HeaderNode) {
-    yieldVisit(node) {
-      val tags = headingTag(node.getLevel)
-      buffer.append(tags.opening)
-      visitChildren(node)
-      buffer.append(tags.closing)
-      appendNL()
+    val html = collectChildren(node)
+    val header = Header(node.getLevel, html)
+    val headerTags = headingTag(node.getLevel)
+
+    wrapper(header) match {
+      case PrefixWith(prefixHtml) =>
+        buffer.append(prefixHtml)
+        buffer.append(headerTags.opening)
+        buffer.append(html)
+        buffer.append(headerTags.closing)
+        appendNL()
+      case NoWrap =>
+        buffer.append(headerTags.opening)
+        buffer.append(html)
+        buffer.append(headerTags.closing)
+        appendNL()
+      case Skip =>
+        // do nothing
     }
   }
 
@@ -126,12 +113,10 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   def visit(node: OrderedListNode) {}
 
   def visit(node: ParaNode) {
-    yieldVisit(node) {
-      appendFormat("<p>")
-      visitChildren(node)
-      appendFormat("</p>")
-      appendNL()
-    }
+    appendFormat("<p>")
+    visitChildren(node)
+    appendFormat("</p>")
+    appendNL()
   }
 
   def visit(node: QuotedNode) {}
@@ -139,23 +124,28 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
   def visit(node: ReferenceNode) {}
 
   def visit(node: RefImageNode) {
-    println(node)
+
   }
 
   def visit(node: RefLinkNode) {}
 
   def visit(node: RootNode) {
     visitChildren(node)
-    doYield(buffer)
   }
 
   def visit(node: SimpleNode) {
-    yieldVisit(node) { }
   }
 
-  def visit(node: SpecialTextNode) {}
+  def visit(node: SpecialTextNode) {
 
-  def visit(node: StrongEmphSuperNode) {}
+  }
+
+  def visit(node: StrongEmphSuperNode) {
+    val tag = if (node.isStrong) "strong" else "em"
+    buffer.append('<').append(tag).append('>')
+    visitChildren(node)
+    buffer.append("</").append(tag).append('>')
+  }
 
   def visit(node: TableBodyNode) {}
 

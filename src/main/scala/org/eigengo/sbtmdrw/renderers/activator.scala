@@ -3,9 +3,9 @@ package org.eigengo.sbtmdrw.renderers
 import org.pegdown.ast._
 import scala.collection.mutable
 import org.eigengo.sbtmdrw.MarkdownRenderer
-import org.pegdown.ast.SimpleNode.Type
 
 class ActivatorMarkdownRenderer extends MarkdownRenderer {
+  private var openDiv = false
 
   private val prefix =
     """<html>
@@ -16,31 +16,30 @@ class ActivatorMarkdownRenderer extends MarkdownRenderer {
       |""".stripMargin
 
   private val suffix =
-    """
-      |</body>
+    """</body>
       |</html>
       |""".stripMargin
 
   private val buffer: mutable.StringBuilder = new mutable.StringBuilder()
 
-  private def shouldYield(node: Node, children: => String): ShouldYield = node match {
-    case s: SimpleNode if s.getType == Type.HRule           => YieldOnly
-    case h: HeaderNode if h.getLevel == 1 && buffer.isEmpty => buffer.append(prefix format children); SkipAndClear
-    case _                                                  => ConsumeOnly
+  private def wrap(header: Header): Wrap = {
+    if (header.level == 1 && buffer.isEmpty) {
+      buffer.append(prefix format header.html)
+      Skip
+    } else {
+      val html = if (openDiv) "</div>\n<div>\n" else "<div>\n"
+      openDiv = true
+
+      PrefixWith(html)
+    }
   }
 
-  private def wrap(soFar: CharSequence): BufferOperation = {
-    buffer.append("<div>\n")
-    buffer.append(soFar)
-    buffer.append("\n</div>\n")
-
-    ClearBuffer
-  }
-
-  private val visitor = new HtmlVisitor(shouldYield, wrap) with ActivatorHtmlVisitorFormat
+  private val visitor = new HtmlVisitor(wrap) with ActivatorHtmlVisitorFormat
 
   def render(root: RootNode): String = {
     visitor.visit(root)
+    buffer.append(visitor.toHtml)
+    if (openDiv) buffer.append("</div>\n")
     buffer.append(suffix)
     buffer.toString()
   }
