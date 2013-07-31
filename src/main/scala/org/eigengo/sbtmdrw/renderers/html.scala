@@ -57,7 +57,7 @@ class HtmlVisitor(shouldYield: (Node, => String) => ShouldYield, doYield: CharSe
 
   def visit(node: CodeNode) {
     yieldVisit(node) {
-      appendFormat("<code><pre>\n%s\n</pre></code>", node.getText)
+      appendFormat("<code>%s</code>", node.getText)
     }
   }
 

@@ -5,9 +5,15 @@
 <body>
 <div>
 <h2>Code example</h2>
-<p>Here is some code sample</p>
+<p>Here is some code sample <code>foo()</code></p>
 <code><pre>
-code()
+foo match {
+  case "fish" => <*->
+  case "pig"  =>  ^    ^
+                / *    * \
+                |  (..)  |
+                \--------/
+}                 &    &
 here()
 
 and.here.too()
