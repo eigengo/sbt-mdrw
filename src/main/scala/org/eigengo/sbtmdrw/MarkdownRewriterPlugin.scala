@@ -14,26 +14,36 @@ import scala.io.Source
  */
 object MarkdownRewriterPlugin extends Plugin {
 
+  val renderers = SettingKey[Map[String, MarkdownRenderer]]("renderers") //Seq(ActivatorMarkdownRenderer(), WordpressMarkdownRenderer()))
+
   override lazy val settings = Seq(
-    Keys.commands += mdrwCommand
+    Keys.commands += mdrwCommand,
+    renderers <<= renderers ?? defaultRenderes
   )
 
-  def renderers: PartialFunction[Option[String], MarkdownRenderer] = {
-    case Some("activator") => ActivatorMarkdownRenderer()
-    case Some("wordpress") => WordpressMarkdownRenderer()
-
-    case _                 => ActivatorMarkdownRenderer() // TODO: some sensible default
-  }
+  private val defaultRenderer = ActivatorMarkdownRenderer()
+  private val defaultRenderes = Map("activator" -> defaultRenderer, "wordpress" -> WordpressMarkdownRenderer())
 
   private val args = (Space ~> StringBasic).*
 
   private lazy val mdrwCommand = Command("mdrw")(_ => args)(doCommand)
 
   def doCommand(state: State, args: Seq[String]): State = {
-    val renderer = renderers(args.headOption)
-
     val extracted = Project.extract(state)
     val buildStruct = extracted.structure
+    val availableRenderers: Option[Map[String, MarkdownRenderer]] = renderers in extracted.currentRef get buildStruct.data
+
+    // I could have used some ``for`` comprehension or a ``map`` on the ``rendererNameOption``, but this
+    // is a bit more readable. Also note that I use ``rendererNameOption`` rather than using ``args.headOption``
+    // directly to allow me to change the ``args`` in the future
+    val rendererNameOption = args.headOption
+    val renderer: MarkdownRenderer = rendererNameOption match {
+      case Some(rendererName) => availableRenderers.flatMap(_.get(rendererName)).getOrElse(defaultRenderer)
+      case None               => defaultRenderer
+    }
+
+    // Collect *all* projects in this project's structure. I want to have a list of all sub-modules so that I can
+    // work on each sub-module's markdown files
     val buildUnit = buildStruct.units(buildStruct.root)
     val uri = buildStruct.root
     val projectList = {
@@ -56,6 +66,7 @@ object MarkdownRewriterPlugin extends Plugin {
       }
     }
 
+    // finally, process each project's markdown files, rendering to ``buildUnit.localBase``
     projectList.foreach {
       case (_, project) => processProject(state, project, buildUnit.localBase, renderer)
     }
@@ -63,24 +74,29 @@ object MarkdownRewriterPlugin extends Plugin {
     state
   }
 
-  private def isMarkdownFile(file: File): Boolean = {
-    if (file.isDirectory) {
-      false
-    } else {
-      val ext = file.ext
-      ext == "md" || ext == "mdown" || ext == "markdown"
-    }
-  }
 
   private def processProject(state: State, project: ResolvedProject, projectRoot: File, renderer: MarkdownRenderer): Unit = {
-    val tutorialBase = project.base / "tutorial"
-    val tutorialTarget = projectRoot / "tutorial"
+    // this is a bit more readable and a bit more Scala-esque variant of the same lines
+    // in the implementation of the ``FileFilter``
+    def isMarkdownFile(file: File): Boolean = {
+      if (file.isDirectory) {
+        false
+      } else {
+        val ext = file.ext
+        ext == "md" || ext == "mdown" || ext == "markdown"
+      }
+    }
+
+    val tutorialBase = project.base / "tutorial"    // we are searching for files in $project/tutorial
+    val tutorialTarget = projectRoot / "tutorial"   // we are writing the files to $root/tutorial
     state.log.info("Processing markdown files in " + tutorialBase + " to " + tutorialTarget)
 
+    // find the Markdown files
     val markdownFiles = tutorialBase.listFiles(new FileFilter {
       def accept(pathname: File): Boolean = isMarkdownFile(pathname)
     })
 
+    // render each into the requested output
     markdownFiles.foreach(processMarkdownFile(state, renderer, tutorialTarget))
   }
 

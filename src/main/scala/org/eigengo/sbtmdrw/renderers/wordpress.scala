@@ -3,10 +3,10 @@ package org.eigengo.sbtmdrw.renderers
 import org.eigengo.sbtmdrw.MarkdownRenderer
 import org.pegdown.ast.RootNode
 
-class WordpressMarkdownRenderer extends MarkdownRenderer {
-  private val visitor = new HtmlVisitor(_ => NoWrap) with WordpressHtmlVisitorFormat
+class WordpressMarkdownRenderer private() extends MarkdownRenderer {
 
   def render(root: RootNode): String = {
+    val visitor = new HtmlVisitor(_ => NoWrap) with WordpressHtmlVisitorFormat
     visitor.visit(root)
     visitor.toHtml
   }
@@ -17,7 +17,7 @@ object WordpressMarkdownRenderer {
   def apply(): WordpressMarkdownRenderer = new WordpressMarkdownRenderer()
 }
 
-trait WordpressHtmlVisitorFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
+private[renderers] trait WordpressHtmlVisitorFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
   def codeBlockTags(kind: Option[String]): Tags =
     Tags("""<pre class="brush:[%s]">""" format kind.getOrElse("scala"), "</pre>")
 
