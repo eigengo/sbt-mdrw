@@ -4,7 +4,20 @@ import org.pegdown.ast._
 import scala.collection.mutable
 import org.eigengo.sbtmdrw.MarkdownRenderer
 
-class ActivatorMarkdownRenderer extends MarkdownRenderer {
+class ActivatorMarkdownRenderer private() extends MarkdownRenderer {
+
+  def render(root: RootNode): String = new ActivatorMarkdownRendererIO().render(root)
+
+}
+
+object ActivatorMarkdownRenderer {
+  def apply(): ActivatorMarkdownRenderer = new ActivatorMarkdownRenderer()
+}
+
+/**
+ * This is pretty grim.
+ */
+private[renderers] class ActivatorMarkdownRendererIO {
   private var openDiv = false
 
   private val prefix =
@@ -46,11 +59,7 @@ class ActivatorMarkdownRenderer extends MarkdownRenderer {
 
 }
 
-object ActivatorMarkdownRenderer {
-  def apply(): ActivatorMarkdownRenderer = new ActivatorMarkdownRenderer()
-}
-
-trait ActivatorHtmlVisitorFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
+private[renderers] trait ActivatorHtmlVisitorFormat extends HtmlVisitorCodeFormat with HtmlVisitorHeadingFormat {
   def codeBlockTags(kind: Option[String]): Tags = Tags("<code><pre>", "</pre></code>")
 
   def escapeCode(code: String): String = code
