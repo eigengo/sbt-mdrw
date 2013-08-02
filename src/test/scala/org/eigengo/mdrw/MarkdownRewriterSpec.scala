@@ -28,6 +28,8 @@ class MarkdownRewriterSpec extends Specification {
 
     "refs" in { activator("refs") }
 
+    "lists" in { activator("lists") }
+
   }
 
   "Wordpress format" >> {

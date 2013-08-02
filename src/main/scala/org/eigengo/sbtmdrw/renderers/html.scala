@@ -60,7 +60,11 @@ class HtmlVisitor(wrapper: Header => Wrap) extends Visitor {
 
   def visit(node: BlockQuoteNode) {}
 
-  def visit(node: BulletListNode) {}
+  def visit(node: BulletListNode) {
+    buffer.append("<ul>\n")
+    visitChildren(node)
+    buffer.append("</ul>\n")
+  }
 
   def visit(node: CodeNode) {
     appendFormat("<code>%s</code>", node.getText)
@@ -106,7 +110,11 @@ class HtmlVisitor(wrapper: Header => Wrap) extends Visitor {
 
   def visit(node: InlineHtmlNode) {}
 
-  def visit(node: ListItemNode) {}
+  def visit(node: ListItemNode) {
+    buffer.append("<li>")
+    visitChildren(node)
+    buffer.append("</li>\n")
+  }
 
   def visit(node: MailLinkNode) {}
 
