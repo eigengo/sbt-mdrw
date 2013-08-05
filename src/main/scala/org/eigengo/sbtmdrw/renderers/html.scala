@@ -2,6 +2,7 @@ package org.eigengo.sbtmdrw.renderers
 
 import org.pegdown.ast._
 import scala.collection.mutable
+import org.pegdown.ast.SimpleNode.Type
 
 sealed trait Wrap
 case class PrefixWith(html: String) extends Wrap
@@ -142,10 +143,13 @@ class HtmlVisitor(wrapper: Header => Wrap) extends Visitor {
   }
 
   def visit(node: SimpleNode) {
+    node.getType match {
+      case Type.Linebreak => buffer.append(' ')
+      case _              =>
+    }
   }
 
   def visit(node: SpecialTextNode) {
-
   }
 
   def visit(node: StrongEmphSuperNode) {
