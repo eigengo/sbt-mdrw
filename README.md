@@ -1,6 +1,6 @@
 This is a simple SBT plugin which can rewrite the markdown files in _base_``/tutorial`` directory to HTML in a suitable format.
 
-If you add ``addSbtPlugin("org.eigengo" % "sbt-mdrw" % "1.0.0-SNAPSHOT")`` to your ``~/.sbt/0.12.3/plugins.sbt``, 
+If you add ``addSbtPlugin("org.eigengo" % "sbt-mdrw" % "1.0.0-SNAPSHOT")`` to your ``~/.sbt/0.13/plugins.sbt``, 
 every project you use will include the ``mdrw`` command; if you do not want system-wide plugin, add the plugin only to
 the projects that require it. 
 
