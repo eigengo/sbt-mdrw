@@ -17,7 +17,7 @@ shellPrompt in ThisBuild := { state => Project.extract(state).currentRef.project
 
 libraryDependencies ++= Seq(
   "org.pegdown"          % "pegdown"           % "1.4.1",
-  "org.specs2"          %% "specs2"            % "1.12.3"       % "test"
+  "org.specs2"          %% "specs2"            % "2.3.4"       % "test"
 )
 
 /** Compilation */

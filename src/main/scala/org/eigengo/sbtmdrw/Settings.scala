@@ -1,7 +1,7 @@
 package org.eigengo.sbtmdrw
 
 import sbt._
-import sbt.Load.BuildStructure
+import sbt.BuildStructure
 import scala.Some
 
 case class Settings(projectRef: ProjectRef, buildStruct: BuildStructure, state: State) {
