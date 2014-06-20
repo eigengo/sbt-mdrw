@@ -7,6 +7,7 @@ import sbt.Load.BuildStructure
 import java.rmi.activation.Activator
 import org.eigengo.sbtmdrw.renderers.{WordpressMarkdownRenderer, ActivatorMarkdownRenderer}
 import scala.io.Source
+import scala.util.{Success, Failure}
 
 /**
  * Plugin for SBT that provides a task to convert Markdown files into other text-based formats, in the first instance,
@@ -75,7 +76,7 @@ object MarkdownRewriterPlugin extends Plugin {
   }
 
 
-  private def processProject(state: State, project: ResolvedProject, projectRoot: File, renderer: MarkdownRenderer): Unit = {
+  private def processProject(state: State, project: ResolvedProject, projectRoot: File, renderer: MarkdownRenderer): State = {
     // this is a bit more readable and a bit more Scala-esque variant of the same lines
     // in the implementation of the ``FileFilter``
     def isMarkdownFile(file: File): Boolean = {
@@ -98,17 +99,22 @@ object MarkdownRewriterPlugin extends Plugin {
 
     // render each into the requested output
     markdownFiles.foreach(processMarkdownFile(state, renderer, tutorialTarget))
+
+    state
   }
 
-  private def processMarkdownFile(state: State, renderer: MarkdownRenderer, targetDirectory: File)(file: File): Unit = {
+  private def processMarkdownFile(state: State, renderer: MarkdownRenderer, targetDirectory: File)(file: File): State = {
     state.log.info("Converting file " + file)
 
-    new MarkdownRewriter(file, renderer).run() match {
-      case Left(error)    => state.log.error(error)
-      case Right(content) =>
+    new MarkdownRewriter(file, renderer).run(state.log) {
+      case Failure(error)   =>
+        state.log.error(error.getMessage)
+        state.fail
+      case Success(content) =>
         val w = new BufferedWriter(new FileWriter(targetDirectory / file.base + ".html"))
         w.write(content)
         w.close()
+        state
     }
   }
 

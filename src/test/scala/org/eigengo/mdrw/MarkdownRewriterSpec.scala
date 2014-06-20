@@ -6,6 +6,17 @@ import java.io.File
 import org.eigengo.sbtmdrw.renderers.{WordpressMarkdownRenderer, ActivatorMarkdownRenderer}
 import org.specs2.execute.Result
 import scala.io.Source
+import xsbti.AppConfiguration
+import sbt.{Level, Logger}
+import scala.util.{Success, Failure}
+
+object MarkdownRewriterSpec {
+  class CollectingLogger extends Logger {
+    override def trace(t: => Throwable): Unit = ()
+    override def log(level: Level.Value, message: => String): Unit = ()
+    override def success(message: => String): Unit = ()
+  }
+}
 
 class MarkdownRewriterSpec extends Specification {
 
@@ -13,8 +24,12 @@ class MarkdownRewriterSpec extends Specification {
     def getFile(name: String): File = new File(getClass.getResource(name).toURI)
 
     val expected = Source.fromFile(getFile("/" + base + "-" + rendererSuffix)).mkString
-    val rendered = new MarkdownRewriter(getFile("/" + base + ".md"), renderer).run().right.get
-    rendered mustEqual expected
+    val log = new MarkdownRewriterSpec.CollectingLogger
+    new MarkdownRewriter(getFile("/" + base + ".md"), renderer).run(log) {
+      case Failure(t) => failure(t.getMessage)
+      case Success(rendered) => rendered mustEqual expected
+    }
+
   }
 
   "Activator format" >> {
@@ -30,6 +45,8 @@ class MarkdownRewriterSpec extends Specification {
 
     "lists" in { activator("lists") }
 
+    "https://github.com/eigengo/sbt-mdrw/issues/8" in { activator("wsargent-8") }
+
   }
 
   "Wordpress format" >> {
@@ -38,6 +55,8 @@ class MarkdownRewriterSpec extends Specification {
     "simple" in { wordpress("simple") }
 
     "code blocks" in { wordpress("code") }
+
+    "https://github.com/eigengo/sbt-mdrw/issues/8" in { wordpress("wsargent-8") }
 
   }
 

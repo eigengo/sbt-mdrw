@@ -3,10 +3,13 @@ package org.eigengo.sbtmdrw.renderers
 import org.pegdown.ast._
 import scala.collection.mutable
 import org.eigengo.sbtmdrw.MarkdownRenderer
+import sbt.{Logger, State}
+import scala.util.{Success, Try}
 
 class ActivatorMarkdownRenderer private() extends MarkdownRenderer {
 
-  def render(root: RootNode): String = new ActivatorMarkdownRendererIO().render(root)
+  def render[A](root: RootNode, log: Logger)(onComplete: Try[String] => A): A =
+    onComplete(Success(new ActivatorMarkdownRendererIO().render(root)))
 
 }
 
