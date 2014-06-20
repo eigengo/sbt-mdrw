@@ -8,7 +8,7 @@ version := "1.0.0-SNAPSHOT"
 
 organization := "org.eigengo"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.4"
 
 /** Shell */
 shellPrompt := { state => System.getProperty("user.name") + "> " }
